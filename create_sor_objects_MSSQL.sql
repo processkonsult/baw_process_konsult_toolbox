@@ -1,0 +1,105 @@
+USE SOR
+GO
+
+IF OBJECT_ID('dbo.SOR_SEQ') IS NOT NULL DROP SEQUENCE dbo.SOR_SEQ
+
+IF OBJECT_ID('dbo.Document') IS NOT NULL DROP TABLE dbo.Document
+IF OBJECT_ID('dbo.DocumentType') IS NOT NULL DROP TABLE dbo.DocumentType
+IF OBJECT_ID('dbo.AuditHistory') IS NOT NULL DROP TABLE dbo.AuditHistory
+IF OBJECT_ID('dbo.Comment') IS NOT NULL DROP TABLE dbo.Comment
+IF OBJECT_ID('dbo.Status') IS NOT NULL DROP TABLE dbo.Status
+IF OBJECT_ID('dbo.StatusType') IS NOT NULL DROP TABLE dbo.StatusType
+IF OBJECT_ID('dbo.Person') IS NOT NULL DROP TABLE dbo.Person
+IF OBJECT_ID('dbo.AssignmentRole') IS NOT NULL DROP TABLE dbo.AssignmentRole
+GO
+
+CREATE SEQUENCE dbo.SOR_SEQ
+	AS [bigint]
+	START WITH 1
+	INCREMENT BY 1
+	MINVALUE -9223372036854775808
+	MAXVALUE 9223372036854775807
+	CACHE 
+GO
+
+CREATE TABLE dbo.Status (
+	Code VARCHAR(20) NOT NULL CONSTRAINT PK_Status_Code PRIMARY KEY CLUSTERED,
+	Name VARCHAR(100) NOT NULL CONSTRAINT UC_Status_Name UNIQUE,
+	IsTerminal BIT NOT NULL,
+	IsActive BIT NOT NULL DEFAULT 1
+)
+GO
+INSERT INTO dbo.Status (Code, Name, IsTerminal, IsActive) VALUES ('NEW', 'New', 0, 1)
+INSERT INTO dbo.Status (Code, Name, IsTerminal, IsActive) VALUES ('COMPLETE', 'Complete', 1, 1)
+GO
+
+CREATE TABLE dbo.Person (	
+	Id VARCHAR(10) NOT NULL CONSTRAINT PK_Person_Id PRIMARY KEY CLUSTERED,
+	UserName NVARCHAR(100) NOT NULL CONSTRAINT UC_Person_UserName UNIQUE,
+	FullName NVARCHAR(100) NOT NULL,
+	Email NVARCHAR(100) NOT NULL CONSTRAINT UC_Person_Email UNIQUE
+)
+GO
+INSERT INTO Person (Id, UserName, FullName, Email) VALUES (NEXT VALUE FOR SOR_SEQ, 'celladmin', 'System', 'celladmin@test.com')
+GO
+
+CREATE TABLE dbo.AssignmentRole (	
+	RoleName VARCHAR(100) NOT NULL CONSTRAINT PK_AssignmentRole_RoleName PRIMARY KEY CLUSTERED,
+	RoleLabel NVARCHAR(100) NOT NULL CONSTRAINT UC_AssignmentRole_RoleLabel UNIQUE
+)
+GO
+INSERT INTO dbo.AssignmentRole (RoleName, RoleLabel) VALUES ('PROJ_Reveiwers', 'Reviewers')
+GO
+
+CREATE TABLE dbo.Comment (	
+	Id VARCHAR(10) NOT NULL CONSTRAINT PK_Comment_Id PRIMARY KEY CLUSTERED,
+    ParentCommentId VARCHAR(10) CONSTRAINT FK_Comment_ParentCommentId FOREIGN KEY REFERENCES Comment(Id),
+	
+	-- EntityId is a placeholder, this should be changed in actual implementation:
+	EntityId VARCHAR(10) NOT NULL, -- CONSTRAINT FK_Comment_EntityId FOREIGN KEY REFERENCES Entity(Id),
+	
+	CreatedBy VARCHAR(10) NOT NULL CONSTRAINT FK_Comment_CreatedBy FOREIGN KEY REFERENCES Person(Id),
+	CreatedDate DATETIME NOT NULL,
+	TaskId VARCHAR(20),
+	TaskName NVARCHAR(100),
+	CommentText NVARCHAR(4000) NOT NULL,
+	Action NVARCHAR(20)
+)
+GO
+
+CREATE TABLE dbo.AuditHistory (	
+	Id VARCHAR(10) NOT NULL CONSTRAINT PK_AuditHistory_Id PRIMARY KEY CLUSTERED,
+	--EntityId VARCHAR(10) NOT NULL CONSTRAINT FK_AuditHistory_EntityId FOREIGN KEY REFERENCES Entity(Id),
+	ProcessInstanceId VARCHAR(20) NOT NULL,
+	TaskId VARCHAR(20) NOT NULL,
+	RoleName VARCHAR(100) CONSTRAINT FK_AuditHistory_RoleName FOREIGN KEY REFERENCES AssignmentRole(RoleName),
+	DueDate DATETIME NOT NULL,
+	CreatedDate DATETIME NOT NULL,
+	CompletedBy VARCHAR(10) NOT NULL,
+	CompletedDate DATETIME NOT NULL,
+	TaskSubject NVARCHAR(200) NOT NULL,
+	Decision NVARCHAR(20),
+	DecisionComment NVARCHAR(4000)
+)
+GO
+
+CREATE TABLE dbo.DocumentType (	
+	Code VARCHAR(20) NOT NULL CONSTRAINT PK_DocumentType_Code PRIMARY KEY CLUSTERED,
+	Name VARCHAR(100) NOT NULL,
+	IsActive BIT NOT NULL
+)
+GO
+INSERT INTO DocumentType (Code, Name, IsActive) VALUES ('OTHER', 'Other', 1)
+GO
+
+CREATE TABLE dbo.Document (
+	Id VARCHAR(10) NOT NULL CONSTRAINT PK_Document_Id PRIMARY KEY CLUSTERED,
+	ObjectId VARCHAR(20),
+	EntityId VARCHAR(10) NOT NULL, -- CONSTRAINT FK_Document_EntityId FOREIGN KEY REFERENCES Entity(Id),
+	CreatedBy VARCHAR(10) NOT NULL CONSTRAINT FK_Document_CreatedBy FOREIGN KEY REFERENCES Person(Id),
+	CreatedDate DATETIME NOT NULL,
+	DocumentTypeCode VARCHAR(20) NOT NULL CONSTRAINT FK_Document_DocumentTypeCode FOREIGN KEY REFERENCES DocumentType(Code),
+	FileName NVARCHAR(200) NOT NULL,
+	Url VARCHAR(500) NOT NULL
+)
+GO

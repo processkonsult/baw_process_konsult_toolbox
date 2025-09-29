@@ -1,0 +1,13 @@
+TO DO:
+-Setup SMTP and test SMTP mail services
+-Generalize Documents CV control
+-Generalize Comments CV control
+-export and search codebase for lilly and MCK and McKesson
+x-REST API connector, export jar, get services working
+x-Document search not working - might've accidentally deleted parts of query (check against MCK) - just had to fully restart BAW server
+
+
+
+FUTURE:
+-Examine ServiceDataTable control .js and see if there is a way to capture the error in the "On service data error:" event - perhaps from view._instance.?
+
